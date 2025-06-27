@@ -1,0 +1,17 @@
+
+# Node.js
+node_modules/
+npm-debug.log
+.env
+
+# Express.js specific (if any, though usually covered by Node.js)
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
