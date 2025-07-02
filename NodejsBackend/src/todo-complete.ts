@@ -2,6 +2,7 @@
 
 import * as http from 'http';
 import { stripTypeScriptTypes } from 'module';
+import { parse } from 'path';
 import * as url from 'url';
 
 //TODO項目の型定義
@@ -11,8 +12,8 @@ interface Todo {
     completed: boolean;
     createdAt: string;
     updatedAt: string;
-    priority:'high'|'middle'|'low';
-    category:string;
+    priority:'high'|'medium'|'low';
+    category?:string | undefined;
 }
 
 //APIレスポンスの型定義
@@ -26,11 +27,22 @@ interface ApiResponse<T = any> {
 //リクエストボディの型定義
 interface CreateTodoRequest {
     text: string;
+    priority:'high'|'medium'|'low';
+    category?:string|undefined;
 }
 
 interface UpdateTodoRequest {
     text?: string;
     completed?: boolean;
+}
+
+interface TodoQuery{
+    search?:string;
+    category?:string;
+    priority?:string;
+    completed?:boolean;
+    sortBy?:'createdAt'|'priority';
+    order?:'asc'|'desc'
 }
 
 //TODOデータを格納する配列（メモリ内）
@@ -98,10 +110,58 @@ type RouteHandler = (req: http.IncomingMessage, res: http.ServerResponse) => Pro
 const routes: Record<string, RouteHandler> = {
     //全TODO取得
     'GET /todos': (req: http.IncomingMessage, res: http.ServerResponse): void => {
+        const parsedUrl = url.parse(req.url || '',true);
+        console.log(parsedUrl.query);
+        //検索機能
+        let result:Todo[] = todos;
+        const search = parsedUrl.query.search as string;
+        if(search)
+        {
+            result = todos.filter(t=>t.text.includes(search));
+        }
+        const category = parsedUrl.query.category as string;
+        if(category){
+            result = result.filter(t=>t.category === category);
+        }
+        const priority = parsedUrl.query.priority as string;
+        if(priority){
+            result = result.filter(t=>t.priority === priority);
+        }
+        const completed = parsedUrl.query.completed as string;
+        if(completed){
+            result = result.filter(t=>t.completed === (completed === 'true'));
+        }
+        const sortBy = parsedUrl.query.sortBy as string;
+        const order = parsedUrl.query.order as string;
+        if(sortBy){
+            switch(sortBy){
+                case 'priority':
+                    const priorityOrder = {high:3,medium:2,low:1};
+                    result.sort((a,b)=>{
+                        if(order === 'desc'){
+                            return priorityOrder[b.priority]-priorityOrder[a.priority];
+                        }else{
+                            return priorityOrder[a.priority] - priorityOrder[b.priority];
+                        }
+                    })
+                    break;
+                case 'createdAt':
+                    result.sort((a,b)=>{
+                        if(order === 'desc'){
+                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                        }else{
+                            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                        }
+                    })
+                    break;
+                default:
+                    break;
+            }
+        }
         const response: ApiResponse<Todo[]> = {
             success: true,
-            data: todos,
-            message: `${todos.length}件のTODOを取得`
+            data: result,
+            message: `${result.length}件のTODOを取得`
         };
         sendResponse(res, 200, response);
     },
@@ -120,13 +180,22 @@ const routes: Record<string, RouteHandler> = {
                 sendResponse(res, 400, response);
                 return;
             }
+            if(!data.priority || typeof data.priority !== 'string' || data.priority.trim() === ''){
+                const response: ApiResponse = {
+                    success:false,
+                    error:'priorityフィールドは必須です。空文字も禁止です'
+                };
+                sendResponse(res,400,response);
+                return;
+            }
             const newTodo: Todo = {
                 id: nextId++,
                 text: data.text.trim(),
                 completed: false,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                
+                priority:data.priority,
+                category:data.category
             };
 
             todos.push(newTodo);
@@ -273,7 +342,8 @@ const server: http.Server = http.createServer(async(req:http.IncomingMessage,res
         return;
     }
 
-    const routeKey :string = `${req.method} ${req.url}`;
+    const parsedUrl= url.parse(req.url||'',true);
+    const routeKey :string = `${req.method} ${parsedUrl.pathname}`;
     const handler: RouteHandler | undefined = routes[routeKey];
 
     try{
