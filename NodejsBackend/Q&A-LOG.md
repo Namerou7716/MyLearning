@@ -444,7 +444,195 @@ if (id !== null) {
 
 *新しい質問があればここに追記していきます*
 
-### Q11: [次の質問]
+### Q11: PowerShellでディレクトリを丸ごと移動させるには
+
+**質問内容:** PowerShellでフォルダを別の場所に移動させる方法
+
+**回答:**
+PowerShellでディレクトリを丸ごと移動させるには：
+
+```powershell
+Move-Item -Path "移動元のパス" -Destination "移動先のパス"
+```
+
+**例：**
+```powershell
+# フォルダを別の場所に移動
+Move-Item -Path "C:\Users\Username\Documents\OldFolder" -Destination "C:\Users\Username\Desktop\NewFolder"
+
+# 現在のディレクトリから相対パスで移動
+Move-Item -Path ".\MyFolder" -Destination "..\AnotherLocation\"
+```
+
+**ショートカット：**
+```powershell
+mv "移動元" "移動先"  # Unix風のエイリアス
+```
+
+**学習ポイント:**
+- Windows PowerShellでのファイル操作コマンド
+- Unix系コマンドのエイリアス存在
+- 相対パス・絶対パスの使い分け
+
+---
+
+### Q12: RESTful原則とは何ですか
+
+**質問内容:** RESTful原則の基本概念について
+
+**回答:**
+RESTful原則とは、Web APIの設計における以下の基本ルールです：
+
+**1. リソース指向**
+- URLはリソース（データ）を表現
+- 例：`/users/123` （ユーザーID 123）
+
+**2. HTTPメソッドの適切な使用**
+- GET：取得、POST：作成、PUT：更新、DELETE：削除
+
+**3. ステートレス**
+- 各リクエストは独立している（サーバーは状態を保持しない）
+
+**4. 統一インターフェース**
+- 一貫したURL構造とレスポンス形式
+
+**例：**
+```
+GET    /users     # 全ユーザー取得
+GET    /users/123 # 特定ユーザー取得
+POST   /users     # 新規ユーザー作成
+PUT    /users/123 # ユーザー更新
+DELETE /users/123 # ユーザー削除
+```
+
+**設計のメリット:**
+- どのURLでどの操作ができるか予測しやすい
+- 開発者にとって理解しやすい
+- フロントエンドから全てのCRUD操作が可能
+- **1つのリソースに対してHTTPメソッドを変えるだけで、作成・読取・更新・削除の全操作に対応**できる統一的な設計
+
+**学習ポイント:**
+- Web API設計の基本原則
+- HTTPメソッドの適切な使い分け
+- リソース指向の考え方
+- 統一的な設計の重要性
+
+---
+
+### Q13: routes変数は静的ルート定義ですか
+
+**質問内容:** nodejs-backend-complete-guideのPhase1に書かれているroutes変数について
+
+**回答:**
+はい、**`routes`変数は静的ルート定義**です！
+
+**実際のコード：**
+```typescript
+// 静的ルート定義（step4-todo-complete.ts 92-144行目）
+const routes: Record<string, RouteHandler> = {
+  'GET /todos': (req, res) => {
+    // 全TODO取得処理
+  },
+  'POST /todos': async (req, res) => {
+    // TODO作成処理
+  }
+};
+```
+
+**この実装の構造：**
+
+1. **静的ルート** - `routes`オブジェクトで事前定義
+   - `GET /todos` → 全TODO取得
+   - `POST /todos` → TODO作成
+
+2. **動的ルート** - パラメータ付きURLを関数で処理
+   - `GET /todos/:id` → 特定TODO取得
+   - `PUT /todos/:id` → TODO更新  
+   - `DELETE /todos/:id` → TODO削除
+
+**メイン処理の流れ：**
+```typescript
+const routeKey = `${req.method} ${req.url}`;
+const handler = routes[routeKey];  // 静的ルートをチェック
+
+if (handler) {
+  await handler(req, res);  // 静的ルート実行
+} else {
+  const handled = await handleDynamicRoutes(req, res);  // 動的ルート実行
+}
+```
+
+つまり、**静的ルート定義と動的ルート処理の両方を組み合わせた実装**になっています！
+
+**学習ポイント:**
+- 静的ルート定義の実際の実装方法
+- オブジェクトを使ったルート管理
+- 静的・動的ルートの組み合わせ手法
+
+---
+
+### Q14: GET, POST, PUTが静的ルート定義に含まれないのはなぜですか
+
+**質問内容:** パラメータ付きのGET, POST, PUTが静的ルート定義に含まれない理由
+
+**回答:**
+**パラメータが動的に変化するから**です。
+
+**静的ルート定義に含まれるもの（固定URL）：**
+```typescript
+const routes = {
+  'GET /todos': handler,     // ✅ URLが固定
+  'POST /todos': handler,    // ✅ URLが固定
+};
+```
+
+**動的ルート処理で処理されるもの（可変URL）：**
+```typescript
+// ❌ 静的ルートでは表現できない
+'GET /todos/1': handler,   // ID=1の場合
+'GET /todos/2': handler,   // ID=2の場合  
+'GET /todos/3': handler,   // ID=3の場合
+// ... 無限に続く
+```
+
+**問題点：**
+- TODOのIDは1, 2, 3, 4... と無限に増える
+- 全てのIDパターンを事前定義するのは不可能
+- オブジェクトのキーが無限に必要になる
+
+**解決策：動的処理**
+```typescript
+function handleDynamicRoutes(req, res) {
+  const id = extractId(pathname);  // URLから動的にID抽出
+  
+  if (method === 'GET' && id !== null) {
+    // どんなIDでも対応可能
+  }
+}
+```
+
+**Express.jsでの解決方法：**
+```typescript
+// Express.jsなら簡単に書ける
+app.get('/todos/:id', (req, res) => {
+  const id = req.params.id;  // 自動でID抽出
+});
+```
+
+**まとめ：**
+- **固定URL** → 静的ルート定義
+- **パラメータ付きURL** → 動的ルート処理
+- Express.jsはこの問題を`:id`記法で解決
+
+**学習ポイント:**
+- 静的ルート定義の限界
+- 動的パラメータの必要性
+- フレームワーク（Express.js）の価値
+- URL設計の考え方
+
+---
+
+### Q15: [次の質問]
 
 **質問内容:**
 
@@ -454,5 +642,5 @@ if (id !== null) {
 
 ---
 
-**最終更新:** 2025-01-01  
+**最終更新:** 2025-01-02  
 **Phase進捗:** Phase 1 学習中

@@ -1,205 +1,324 @@
 //CRUD操作に対応した実践的なAPI実装
 
 import * as http from 'http';
+import { stripTypeScriptTypes } from 'module';
 import * as url from 'url';
 
 //TODO項目の型定義
-interface Todo{
-    id:number;
-    text:string;
-    completed:boolean;
-    createdAt:string;
-    updatedAt:string;
+interface Todo {
+    id: number;
+    text: string;
+    completed: boolean;
+    createdAt: string;
+    updatedAt: string;
+    priority:'high'|'middle'|'low';
+    category:string;
 }
 
 //APIレスポンスの型定義
-interface ApiResponse<T=any>{
-    success:boolean;
-    data?:T;
-    message?:string;
-    error?:string;
+interface ApiResponse<T = any> {
+    success: boolean;
+    data?: T;
+    message?: string;
+    error?: string;
 }
 
 //リクエストボディの型定義
-interface CreateTodoRequest{
-    text:string;
+interface CreateTodoRequest {
+    text: string;
 }
 
-interface UpdateTodoRequest{
-    text?:string;
-    completed?:boolean;
+interface UpdateTodoRequest {
+    text?: string;
+    completed?: boolean;
 }
 
 //TODOデータを格納する配列（メモリ内）
 let todos: Todo[] = [
     {
-        id:1,
-        text:'Learn Node.js',
-        completed:false,
-        createdAt:new Date().toISOString(),
-        updatedAt:new Date().toISOString()
+        id: 1,
+        text: 'Learn Node.js',
+        completed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        priority:'high',
+        category:'default'
     },
     {
-        id:2,
-        text:'Create API with TypeScript',
-        completed:false,
-        createdAt:new Date().toISOString(),
-        updatedAt:new Date().toISOString()
+        id: 2,
+        text: 'Create API with TypeScript',
+        completed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        priority:'low',
+        category:'Learn'
     }
 ];
 
-let nextId:number = 3;
+let nextId: number = 3;
 
 //URLからIDを抽出するヘルパー関数
-function extractId(pathName:string):number | null {
-    const parts:string[] = pathName.split('/');
-    if(parts.length === 3 && parts[1] === 'todos'){
-        const id:number = parseInt(parts[2]);
-        return isNaN(id)?null:id;
+function extractId(pathName: string): number | null {
+    const parts: string[] = pathName.split('/');
+    if (parts.length === 3 && parts[1] === 'todos') {
+        const id: number = parseInt(parts[2]);
+        return isNaN(id) ? null : id;
     }
     return null;
 }
 
 //TODOを検索するヘルパー関数
-function findTodoById(id:number):Todo | undefined {
-    return todos.find(todo=>todo.id === id);
+function findTodoById(id: number): Todo | undefined {
+    return todos.find(todo => todo.id === id);
 }
 
 //レスポンス送信のヘルパー関数
-function sendResponse(res:http.ServerResponse,statusCode:number,data:ApiResponse):void{
-    res.writeHead(statusCode,{'Content-Type':'application/json;charset=utf-8'});
-    res.end(JSON.stringify(data,null,2));
+function sendResponse(res: http.ServerResponse, statusCode: number, data: ApiResponse): void {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json;charset=utf-8' });
+    res.end(JSON.stringify(data, null, 2));
 }
 
 //リクエストボディを取得するヘルパー関数
-function getRequestBody(req:http.IncomingMessage):Promise<string>{
-    return new Promise((resolve)=>{
-        let body:string = '';
-        req.on('data',(chunk:Buffer)=>{
-            body+=chunk;
+function getRequestBody(req: http.IncomingMessage): Promise<string> {
+    return new Promise((resolve) => {
+        let body: string = '';
+        req.on('data', (chunk: Buffer) => {
+            body += chunk;
         });
-        req.on('end',()=>{
+        req.on('end', () => {
             resolve(body);
         });
     });
 }
 
 //ルートハンドラーの型定義
-type RouteHandler = (req:http.IncomingMessage,res:http.ServerResponse)=>Promise<void>|void;
+type RouteHandler = (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void> | void;
 
 //静的ルート定義
-const routes:Record<string,RouteHandler>={
+const routes: Record<string, RouteHandler> = {
     //全TODO取得
-    'GET /todos':(req:http.IncomingMessage,res:http.ServerResponse):void=>{
-        const response: ApiResponse<Todo[]>={
-            success:true,
-            data:todos,
-            message:`${todos.length}件のTODOを取得`
+    'GET /todos': (req: http.IncomingMessage, res: http.ServerResponse): void => {
+        const response: ApiResponse<Todo[]> = {
+            success: true,
+            data: todos,
+            message: `${todos.length}件のTODOを取得`
         };
-        sendResponse(res,200,response);
+        sendResponse(res, 200, response);
     },
     //TODO作成
-    'POST /todos':async(req:http.IncomingMessage,res:http.ServerResponse):Promise<void>=>{
-        try{
-            const body:string=await getRequestBody(req);
-            const data:CreateTodoRequest = JSON.parse(body);
+    'POST /todos': async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
+        try {
+            const body: string = await getRequestBody(req);
+            const data: CreateTodoRequest = JSON.parse(body);
 
             //バリデーション
-            if(!data.text || typeof data.text !== 'string' || data.text.trim() === ''){
-                const response:ApiResponse = {
-                    success : false,
-                    error:'textフィールドは必須で、空文字は許可されない'
+            if (!data.text || typeof data.text !== 'string' || data.text.trim() === '') {
+                const response: ApiResponse = {
+                    success: false,
+                    error: 'textフィールドは必須で、空文字は許可されない'
                 };
-                sendResponse(res,400,response);
+                sendResponse(res, 400, response);
                 return;
             }
-            const newTodo: Todo={
-                id:nextId++,
-                text:data.text.trim(),
-                completed:false,
-                createdAt:new Date().toISOString(),
-                updatedAt:new Date().toISOString()
+            const newTodo: Todo = {
+                id: nextId++,
+                text: data.text.trim(),
+                completed: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                
             };
 
             todos.push(newTodo);
 
-            const response:ApiResponse<Todo>={
-                success:true,
-                data:newTodo,
-                message:'Todoは正常に作成されました'
+            const response: ApiResponse<Todo> = {
+                success: true,
+                data: newTodo,
+                message: 'Todoは正常に作成されました'
             };
-            sendResponse(res,201,response);
-        }catch(error){
-            const response : ApiResponse = {
-                success:false,
-                error:'Invalid JSON data',
+            sendResponse(res, 201, response);
+        } catch (error) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Invalid JSON data',
             };
-            sendResponse(res,400,response);
+            sendResponse(res, 400, response);
         }
     }
 };
 
 //動的ルート処理
-async function handleDynamicRoutes(req: http.IncomingMessage,res:http.ServerResponse):Promise<boolean>{
-    const parsedUrl = url.parse(req.url || '',true);
-    const pathname:string = parsedUrl.pathname || '';
-    const method:string = req.method || '';
+async function handleDynamicRoutes(req: http.IncomingMessage, res: http.ServerResponse): Promise<boolean> {
+    const parsedUrl = url.parse(req.url || '', true);
+    const pathname: string = parsedUrl.pathname || '';
+    const method: string = req.method || '';
 
     //number or null type
-    const id:number | null = extractId(pathname);
-    if(id === null)
+    const id: number | null = extractId(pathname);
+    if (id === null)
         return false;
 
-    try{
-        switch(method){
+    try {
+        switch (method) {
             case 'GET':
                 //特定TODO取得
-                const todo:Todo|undefined = findTodoById(id);
-                if(!todo){
-                    const response:ApiResponse = {
-                        success:false,
-                        error:`ID: ${id}が見つかりません。`
+                const todo: Todo | undefined = findTodoById(id);
+                if (!todo) {
+                    const response: ApiResponse = {
+                        success: false,
+                        error: `ID: ${id}が見つかりません。`
                     };
-                    sendResponse(res,404,response);
+                    sendResponse(res, 404, response);
                     return true;
                 }
 
-                const getResponse:ApiResponse<Todo>={
-                    success:true,
-                    data:todo,
-                    message:'TODOを取得しました'
+                const getResponse: ApiResponse<Todo> = {
+                    success: true,
+                    data: todo,
+                    message: 'TODOを取得しました'
                 };
-                sendResponse(res,200,getResponse);
+                sendResponse(res, 200, getResponse);
                 return true;
             case 'PUT':
                 //TODO更新
-                const targetTodo:Todo|undefined = findTodoById(id);
-                if(!targetTodo){
+                const targetTodo: Todo | undefined = findTodoById(id);
+                if (!targetTodo) {
                     const response: ApiResponse = {
-                        success:false,
-                        error:`ID:${id}が見つかりません`
+                        success: false,
+                        error: `ID:${id}が見つかりません`
                     };
-                    sendResponse(res,404,response);
+                    sendResponse(res, 404, response);
                     return true;
                 }
 
-                const body:string = await getRequestBody(req);
-                const updateData:UpdateTodoRequest = JSON.parse(body);
+                const body: string = await getRequestBody(req);
+                const updateData: UpdateTodoRequest = JSON.parse(body);
 
                 //更新処理
-                if(updateData.text !== undefined){
-                    if(typeof updateData.text !== 'string' || updateData.text.trim() === '')
-                    const response: ApiResponse = {
-                        success:false,
-                        error:'text フィールドは空文字は許可されません。'
-                    };
-                    sendResponse(res,400,response);
-                    return false;
+                if (updateData.text !== undefined) {
+                    if (typeof updateData.text !== 'string' || updateData.text.trim() === '') {
+                        const response: ApiResponse = {
+                            success: false,
+                            error: 'text フィールドは空文字は許可されません。'
+                        };
+                        sendResponse(res, 400, response);
+                        return true;
+                    }
                 }
-                if(updateData.completed !== undefined){
+                if (updateData.completed !== undefined) {
+                    if (typeof updateData.completed !== 'boolean') {
+                        const response: ApiResponse = {
+                            success: false,
+                            error: 'cpompletedフィールドはboolean型である必要があります'
+                        };
+                        sendResponse(res, 400, response);
+                        return true;
+                    }
+                    targetTodo.completed = updateData.completed;
+                }
+                targetTodo.updatedAt = new Date().toISOString();
+                const putResponse: ApiResponse<Todo> = {
+                    success: true,
+                    data: targetTodo,
+                    message: 'TODOが正常に更新されました'
+                };
+                sendResponse(res, 200, putResponse);
+                return true;
 
-                }
-            }
+                case 'DELETE':
+                    //TODO削除
+                    const todoIndex: number = todos.findIndex(t=>t.id===id);
+                    if(todoIndex === -1)
+                    {
+                        const response:ApiResponse={
+                            success:false,
+                            error:`ID: ${id} is not found`
+                        };
+                        sendResponse(res,404,response);
+                        return true;
+                    }
+
+                    const deletedTodo:Todo = todos.splice(todoIndex,1)[0];
+                    const deleteResponse: ApiResponse<Todo> = {
+                        success:true,
+                        data:deletedTodo,
+                        message:'TODOが正常に削除されました'
+                    };
+                    sendResponse(res,200,deleteResponse);
+                    return true;
+
+                default:
+                    return false;
         }
+    } catch (error) {
+        const response: ApiResponse = {
+            success:false,
+            error:'Invalid JSON data'
+        };
+        sendResponse(res,400,response);
+        return true;
     }
 }
+
+const server: http.Server = http.createServer(async(req:http.IncomingMessage,res:http.ServerResponse):Promise<void>=>{
+    //CORS設定
+    res.setHeader('Access-Control-Allow-Origin','*');
+    res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-AAllow-Headers','Content-Type,Authorization');
+
+    //OPTIONリクエスト（プリフライトリクエスト）への対応
+    if(req.method === 'OPTIONS'){
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    const routeKey :string = `${req.method} ${req.url}`;
+    const handler: RouteHandler | undefined = routes[routeKey];
+
+    try{
+        if(handler){
+            await handler(req,res);
+        }else{
+            const handled:boolean = await handleDynamicRoutes(req,res);
+
+            if(!handled){
+                //404 error
+                const response:ApiResponse={
+                    success:false,
+                    error:'page not found 404',
+                    message:'利用可能なエンドポイント: GET|POST /todos, GET|PUT|DELETE /todos/:id'
+                };
+                sendResponse(res,404,response);
+            }
+        }
+    }catch(error){
+        //server error
+        console.error('server error:',error);
+        const response:ApiResponse = {
+            success:false,
+            error:'server error occured'
+        };
+        sendResponse(res,500,response);
+    }
+});
+
+const PORT:number = 3000;
+
+server.listen(PORT,():void=>{
+    console.log(`TODO API server start : http://localhost:${PORT}`);
+    console.log('available end point');
+    console.log(' -GET/todos (get all todo)');
+    console.log(' -POST/todos (create todo)');
+    console.log(' -GET/todos/:id (get particular todo)');
+    console.log(' -PUT/todos/:id (update todo)');
+    console.log(' -DELETE/todos/id (delete todo)');
+});
+
+process.on('SIGINT',():void=>{
+    console.log(`\nserver stop ....`);
+    server.close(():void=>{
+        console.log('server stopped');
+        process.exit(0);
+    });
+});

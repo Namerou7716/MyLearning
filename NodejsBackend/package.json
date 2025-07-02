@@ -9,6 +9,7 @@
     "dev":"ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:step1":"ts-node src/hello.ts",
     "dev:step2":"ts-node-dev --respawn --transpile-only src/simple-server.ts",
+    "dev:step4":"ts-node-dev --respawn --transpile-only src/todo-complete.ts",
     "type-check":"tsc --noEmit"
   },
   "keywords": ["nodejs","typescript","learning"],
