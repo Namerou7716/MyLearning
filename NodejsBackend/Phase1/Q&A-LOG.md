@@ -632,15 +632,56 @@ app.get('/todos/:id', (req, res) => {
 
 ---
 
-### Q15: [次の質問]
+### Q15: Phase1実践プロジェクト完了
 
-**質問内容:**
+**質問内容:** Phase1の実践プロジェクト（カスタムTODO API）を完全実装
 
 **回答:**
+**🏆 Phase 1実践プロジェクト完全制覇！**
+
+**実装した全機能：**
+
+✅ **1. 優先度機能** - `priority: 'high' | 'medium' | 'low'`
+- Todo型とCreateTodoRequest型にpriority追加
+- バリデーション実装
+- Union型による型安全性確保
+
+✅ **2. カテゴリ機能** - `category?: string`
+- オプショナル型での実装
+- デフォルト値またはundefined対応
+
+✅ **3. 検索機能** - `?search=keyword`
+- クエリパラメータの取得と処理
+- `filter()` + `includes()`による文字列検索
+- URL解析とルーティング修正
+
+✅ **4. フィルタリング機能**
+- **カテゴリフィルタ**: `?category=Learn`
+- **優先度フィルタ**: `?priority=high`  
+- **完了状況フィルタ**: `?completed=true`
+- 段階的フィルタリング（`result.filter()`）
+
+✅ **5. 並び替え機能**
+- **優先度順**: `?sortBy=priority&order=desc`
+- **作成日順**: `?sortBy=createdAt&order=asc`
+- switch文による分岐処理
+- 日付ソートアルゴリズム
+
+**複合条件テスト例：**
+```bash
+curl "http://localhost:3000/todos?search=Node&category=default&priority=high&completed=false&sortBy=createdAt&order=desc"
+```
 
 **学習ポイント:**
+- TypeScript型安全プログラミングの実践
+- RESTful API設計の基本原則
+- クエリパラメータ処理とURL解析
+- 配列操作（filter, sort）の組み合わせ
+- 段階的機能拡張の手法
+- エラーハンドリングとバリデーション
+- 複数条件の組み合わせ処理
 
 ---
 
 **最終更新:** 2025-01-02  
-**Phase進捗:** Phase 1 学習中
+**Phase進捗:** Phase 1 完了 ✅ → Phase 2 準備中
