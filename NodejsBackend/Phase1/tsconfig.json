@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2016",                                  /*変換後のJavaScriptバージョン*/
+    "module": "commonjs",                                /*モジュールシステム*/
+    "outDir": "./dist",                                  /*compile後の保存先*/
+    "rootDir": "./src",                                  /*TypeScriptファイルはsrcフォルダに置く。import文が使いやすくなる*/
+    "strict": true,                                      /*厳密型チェック*/
+    "noImplicitAny": false,
+    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
+    "skipLibCheck": true,                                 /*ライブラリの方チェックをスキップ*/
+    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
+    "resolveJsonModule": true,                          /*JSONファイルをimportできる*/
+    "sourceMap": true,                                   /*デバック時に元のTSファイルが見える*/
+  },
+  "include": ["src/**/*"],                               /*対象ファイル指定*/
+  "exclude": ["node_modules","dist"]                     /*除外ファイル*/
+}

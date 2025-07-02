@@ -1,0 +1,25 @@
+{
+  "name": "nodejsbackend",
+  "version": "1.0.0",
+  "description": "Node.js学習プロジェクト",
+  "main": "dist/server.js",
+  "scripts": {
+    "build" : "tsc",
+    "start":"node dist/server.js",
+    "dev":"ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:step1":"ts-node src/hello.ts",
+    "dev:step2":"ts-node-dev --respawn --transpile-only src/simple-server.ts",
+    "dev:step4":"ts-node-dev --respawn --transpile-only src/todo-complete.ts",
+    "type-check":"tsc --noEmit"
+  },
+  "keywords": ["nodejs","typescript","learning"],
+  "author": "SadafumiKokubun",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^24.0.8",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  }
+}
