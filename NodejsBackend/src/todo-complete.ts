@@ -149,4 +149,57 @@ async function handleDynamicRoutes(req: http.IncomingMessage,res:http.ServerResp
     const id:number | null = extractId(pathname);
     if(id === null)
         return false;
+
+    try{
+        switch(method){
+            case 'GET':
+                //特定TODO取得
+                const todo:Todo|undefined = findTodoById(id);
+                if(!todo){
+                    const response:ApiResponse = {
+                        success:false,
+                        error:`ID: ${id}が見つかりません。`
+                    };
+                    sendResponse(res,404,response);
+                    return true;
+                }
+
+                const getResponse:ApiResponse<Todo>={
+                    success:true,
+                    data:todo,
+                    message:'TODOを取得しました'
+                };
+                sendResponse(res,200,getResponse);
+                return true;
+            case 'PUT':
+                //TODO更新
+                const targetTodo:Todo|undefined = findTodoById(id);
+                if(!targetTodo){
+                    const response: ApiResponse = {
+                        success:false,
+                        error:`ID:${id}が見つかりません`
+                    };
+                    sendResponse(res,404,response);
+                    return true;
+                }
+
+                const body:string = await getRequestBody(req);
+                const updateData:UpdateTodoRequest = JSON.parse(body);
+
+                //更新処理
+                if(updateData.text !== undefined){
+                    if(typeof updateData.text !== 'string' || updateData.text.trim() === '')
+                    const response: ApiResponse = {
+                        success:false,
+                        error:'text フィールドは空文字は許可されません。'
+                    };
+                    sendResponse(res,400,response);
+                    return false;
+                }
+                if(updateData.completed !== undefined){
+
+                }
+            }
+        }
+    }
 }
