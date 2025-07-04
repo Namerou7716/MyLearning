@@ -4,12 +4,10 @@
   "description": "Phase 2: Express.js フレームワーク入門",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "build":"tsc",
+    "start":"node dist/server.js",
+    "dev":"nodemon --exec ts-node src/server.ts",
+    "test":"echo \"No tests yet\""
   },
   "keywords": [
     "nodejs",
@@ -20,20 +18,22 @@
   "author": "Claude",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.23",
+    "@types/node": "^20.19.4",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.57.0",
+    "nodemon": "^3.1.10",
     "ts-node": "^10.9.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0"
+    "express": "^4.21.2",
+    "helmet": "^7.2.0",
+    "morgan": "^1.10.0"
   },
   "engines": {
     "node": ">=18.0.0",
