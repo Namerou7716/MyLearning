@@ -153,6 +153,264 @@ req.on('end', () => {
 
 ---
 
+### Q4: ミドルウェアの基本概念について
+
+**質問内容:** ミドルウェアってルーティング処理のときに毎回してほしい処理について登録して置ける機能って認識であってる？
+
+**回答:**
+**概念的には正しいです！**より正確に言うと：
+
+**ミドルウェアの正体:**
+```javascript
+// ミドルウェアは「リクエストとレスポンスの間に挟まる処理」
+app.use((req, res, next) => {
+    console.log('リクエストきた！');
+    next(); // 次の処理に進む
+});
+```
+
+**具体的な用途:**
+1. **共通処理の実行**
+   - ログ出力、認証チェック、データ変換など
+2. **リクエスト加工**
+   - リクエストボディの解析、ヘッダー情報の追加
+3. **レスポンス加工**
+   - エラーハンドリング、レスポンス形式の統一
+
+**実行のタイミング:**
+- **アプリケーション全体** → `app.use(middleware)`
+- **特定のルート** → `app.get('/path', middleware, handler)`
+- **特定のルートグループ** → Routerと組み合わせ
+
+**Pure Node.jsとの比較:**
+```javascript
+// Pure Node.jsでは毎回書く必要があった
+const server = http.createServer((req, res) => {
+    // 毎回同じ処理をコピペ
+    console.log('リクエストきた！');
+    req.on('data', chunk => { /* JSONパース */ });
+    req.on('end', () => { /* ルーティング処理 */ });
+});
+
+// Express.jsでは一度登録すれば自動実行
+app.use(express.json()); // JSONパース自動化
+app.use(logger); // ログ出力自動化
+```
+
+**学習ポイント:**
+- Pure Node.jsでの「毎回書いてた面倒な処理」を自動化
+- 処理の順序が重要（上から下へ実行）
+- `next()`の呼び出しで次の処理に進む
+
+---
+
+### Q5: TypeScript型定義の学習方法について
+
+**質問内容:** 04-express-routing.tsのように最初に型を書くことが難しい。どうやってこんなにたくさんの型を考えているのか？
+
+**回答:**
+**最初から完璧な型を書くのは超上級者でも無理です！**
+
+**実際の開発順序:**
+1. **最初は型なしでざっくり実装**
+2. **使いながら少しずつ型を追加**
+3. **エラーが出たら型を修正・追加**
+4. **リファクタリングで整理**
+
+**型を考える方法:**
+1. **データの形を想像** - 「Todoって何を持ってるんだろう？」
+2. **APIレスポンスの形を決める** - 「どんなJSONを返したい？」
+3. **TypeScriptのエラーメッセージを読む** - 「あ、この型が足りない」
+
+**テスト駆動開発との類似性:**
+- TDD: テスト書く → 失敗 → 実装 → テスト通る → リファクタリング
+- TypeScript: 型書く → エラー → 実装 → 型チェック通る → 型改善
+
+**学習ポイント:**
+- 最初から完璧を求めない
+- エラーメッセージが次にやることを教えてくれる
+- 段階的に品質を上げていく
+
+---
+
+### Q6: コード学習の効果的な方法について
+
+**質問内容:** 実際にコードを使って勉強しているが、写経以外に良い方法はあるか？
+
+**回答:**
+**写経だけでは受け身すぎるので、より能動的な学習方法がおすすめ：**
+
+**推奨学習方法:**
+1. **理解しながら写経** (30分)
+   - 1行ずつ「これは何をしてるのか？」を考える
+   - コメントを日本語で書きながら進める
+
+2. **小さな改造** (20分)
+   - フィールドを1つ追加してみる
+   - 新しいエンドポイントを1つ作ってみる
+   - エラーが出たら「なぜ？」を考える
+
+3. **実際に動かす** (10分)
+   - `npm run dev`で動作確認
+   - Postmanやcurlでテスト
+
+**学習効果の比較:**
+- 写経だけ → 「見て覚える」
+- 改造付き → 「考えて理解する」
+
+**時間配分:** 写経30分 + 改造20分 + 動作確認10分 = 1時間
+
+---
+
+### Q7: TypeScriptのRequest型について
+
+**質問内容1:** `endpoints`の型について
+**質問内容2:** Request型のジェネリック型パラメータについて
+**質問内容3:** URL識別の仕組みについて
+
+**回答:**
+
+**endpoints型の説明:**
+```typescript
+endpoints: {
+    todos: string;
+    users: string;
+}
+```
+- **オブジェクト型** - `{}`で囲まれている
+- **todosプロパティ** - string型の値を持つ
+- **usersプロパティ** - string型の値を持つ
+
+**Requestの型定義:**
+```typescript
+Request<P, ResBody, ReqBody, ReqQuery>
+```
+- **P** = URLパラメータ (params)
+- **ResBody** = レスポンスボディ
+- **ReqBody** = リクエストボディ
+- **ReqQuery** = クエリパラメータ
+
+**URL識別の仕組み:**
+```typescript
+// ルーター分離による自動識別
+app.use('/api/todos', todoRouter);  // todo関連
+app.use('/api/users', userRouter);  // user関連
+
+// URLパターンによる識別
+todoRouter.get('/:id', ...)  // /api/todos/123 → todo ID
+userRouter.get('/:id', ...)  // /api/users/456 → user ID
+```
+
+**複数パラメータの例:**
+```typescript
+todoRouter.get('/:firstId/:secondId', (req, res) => {
+    const {firstId, secondId} = req.params;
+});
+// URL: /api/todos/123/456 → firstId="123", secondId="456"
+```
+
+---
+
+### Q8: TypeScript関数の返り値の型について
+
+**質問内容:** TypeScriptでは関数の返り値の型も指定する必要があったのでは？
+
+**回答:**
+**TypeScriptの自動推論が効いているため省略可能です：**
+
+**明示的な指定:**
+```typescript
+todoRouter.get('/:id', (req, res): void => {
+    res.json({todo});  // voidを明示
+});
+```
+
+**自動推論（一般的）:**
+```typescript
+todoRouter.get('/:id', (req, res) => {
+    res.json({todo});  // TypeScriptが自動でvoid型と推論
+});
+```
+
+**なぜvoid型？**
+- Express.jsのルートハンドラーは値を返さない
+- `res.json()`で直接レスポンスを送信
+- 関数自体の戻り値は「なし」= `void`
+
+**推論が働く理由:**
+1. Express.jsの型定義でルートハンドラーはvoidと定義済み
+2. 関数の内容を見て`return`文がないことを確認
+3. 自動的に`void`型と推論
+
+**現代的な書き方:** 推論に任せることが多く、必要な時だけ明示
+
+---
+
+### Q9: Request型の型定義エラーについて
+
+**質問内容:** Request型の2番目のパラメータにUnion型を使用している問題について
+
+**回答:**
+**Request型の2番目のパラメータ（ResBody）にUnion型は不適切です：**
+
+**問題のあるコード:**
+```typescript
+Request<{}, CreateTodoResponse | ErrorResponse, CreateTodoRequest>
+```
+
+**正しいコード:**
+```typescript
+Request<{}, any, CreateTodoRequest>
+```
+
+**理由:**
+- Request型の2番目のパラメータは通常`any`または単一型を使用
+- Express.jsでは`req`でレスポンスを決めない
+- `res.json()`で実際のレスポンスを送信
+
+**役割分担:**
+- **CreateTodoRequest**: `req.body`の型チェックに必要
+- **ErrorResponse**: `Request`には不要、`Response`で指定
+
+**修正箇所:**
+- チュートリアルの複数箇所で同様の問題を発見・修正完了
+
+---
+
+### Q10: 分割代入について
+
+**質問内容:** `const {text, completed = false} = req.body;` の構文について
+
+**回答:**
+**分割代入（Destructuring Assignment）という現代的なJavaScript/TypeScript構文です：**
+
+**動作説明:**
+```typescript
+const {text, completed = false} = req.body;
+```
+1. `req.body`オブジェクトから`text`と`completed`プロパティを取り出す
+2. `completed`が存在しない場合は`false`をデフォルト値として使用
+
+**従来の書き方との比較:**
+```typescript
+// 従来
+const text = req.body.text;
+const completed = req.body.completed || false;
+
+// 分割代入
+const {text, completed = false} = req.body;
+```
+
+**他言語での採用状況:**
+- JavaScript/TypeScript特有ではない
+- Python, Rust, C#, Go, Swiftなど多くの現代的言語で採用
+- 古い言語（C, Java等）にはなかった機能
+
+**利点:**
+- コードが短くて読みやすい
+- デフォルト値を簡単に設定
+- 必要なプロパティだけを取り出し可能
+
 ### 今後記録される質問例
 - Express.jsのインストールと設定
 - app.get(), app.post()の使い方
