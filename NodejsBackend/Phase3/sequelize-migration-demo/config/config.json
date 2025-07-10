@@ -1,0 +1,17 @@
+{
+  "development": {
+    "dialect":"sqlite",
+    "storage":"../../express_sequelize.db"
+  },
+  "test": {
+    "dialect":"sqlite",
+    "storage":"../../express_sequelize.db"
+  },
+  "production": {
+    "dialect":"postgres",
+    "username":"root",
+    "password":null,
+    "database":"todo_production",
+    "host":"127.0.0.1"
+  }
+}
